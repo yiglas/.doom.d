@@ -26,6 +26,7 @@
 ;; available. You can either set `doom-theme' or manually load a theme with the
 ;; `load-theme' function. This is the default:
 (setq doom-theme 'doom-nord)
+(set-face-attribute 'default nil :font "JetBrains Mono")
 
 ;; If you use `org' and don't want your org files in the default location below,
 ;; change `org-directory'. It must be set before org loads!
@@ -33,7 +34,8 @@
 
 ;; This determines the style of line numbers in effect. If set to `nil', line
 ;; numbers are disabled. For relative line numbers, set this to `relative'.
-(setq display-line-numbers-type t)
+(setq display-line-numbers-type 'relative)
+
 
 ;; Here are some additional functions/macros that could help you configure Doom:
 ;;
@@ -52,6 +54,7 @@
 ;; You can also try 'gd' (or 'C-c c d') to jump to their definition and see how
 ;; they are implemented.
 
+
 (setq mac-command-modifier 'super
       ns-command-modifier 'super
       ns-right-command-modifier 'super
@@ -59,105 +62,107 @@
       ns-option-modifier 'meta
       ns-right-option-modifier 'meta)
 
-(defun yiglas-make-frame ()
-  "."
+(map! "<escape>" 'doom/escape)
+
+(defun +yiglas/make-frame ()
+  "Make a new frame and switch that frame to the scratch buffer."
   (interactive)
   (select-frame (make-frame))
   (switch-to-buffer "*scratch*"))
 
-(defun yiglas-delete-frame-or-kill-emacs ()
-  "Delete the current frame or completely kill Emacs if there is only one frame."
+(map! "M-n" '+yiglas/make-frame)
+(map! "C-c <left>" 'windmove-left)
+(map! "C-c <right>" 'windmove-right)
+(map! "C-c <up>" 'windmove-up)
+(map! "C-c <down>" 'windmove-down)
+
+(map! "M-<return>" 'toggle-frame-maximized)
+(map! "C-x k" 'kill-current-buffer)
+(map! "s-x" 'kill-region)
+
+(defun +yiglas/open-config ()
   (interactive)
-  (if (> (length (frame-list)) 1)
-      (delete-frame)
-    (save-buffers-kill-emacs)))
+  (find-file "~/.doom.d/config.el"))
 
-(map! "C-c <left>" 'windmove-left
-      "C-c <right>" 'windmove-right
-      "C-c <up>" 'windmove-up
-      "C-c <down>" 'windmove-down
-      "C--" 'pop-global-mark
-      "s-x" 'kill-region
-      "<f12>" 'lsp-find-definition
-      "C-<f12>" 'lsp-find-implementation
-      "M-<return>" 'toggle-frame-maximized
-      "M-n" 'yiglas-make-frame
-      "C-x k" 'kill-current-buffer
-      "C-c C-k" 'yiglas-delete-frame-or-kill-emacs
-      "C-c r" 'recentf-open-files
-      "C-x t" 'treemacs
-      "s-." 'company-search-candidates)
+(map! "s-," '+yiglas/open-config)
 
+(after! treemacs
+  (map! "C-x t" 'treemacs)
+  (treemacs-follow-mode t))
 
-(setq projectile-project-search-path '("~/code/"))
-(setq enable-dir-local-variables t)
-(setq require-final-newline t)
-(setq mode-require-final-newline t)
+(after! doom-modeline
+  (setq doom-modeline-height 15
+        doom-modeline-bar-width 6
+        doom-modeline-lsp t
+        doom-modeline-github nil
+        doom-modeline-persp-name nil
+        doom-modeline-buffer-file-name-style 'truncate-except-project
+        doom-modeline-major-mode-icon nil
+        doom-modeline-buffer-encoding nil)
+  (custom-set-faces '(mode-line ((t (:height 0.90))))
+                    '(mode-line-inactive ((t (:height 0.93))))))
 
-;; disable lines numbers in the following modes
-(dolist (mode '(org-mode-hook))
-  (add-hook mode (lambda () (display-line-numbers-mode 0))))
+(map! "s-." 'company-search-candidates)
 
-;; get rid of that pesky modeline
-;; NOTE: this might go away if doom-modeline can change to the header line
-(load-file "~/.doom.d/mode-line.el")
+(use-package! dimmer
+  :config
+  (dimmer-configure-which-key)
+  (dimmer-mode t))
 
-;; give some space around the buffer:
-(setq window-divider-default-right-width 24)
-(setq window-divider-default-places 'right-only)
-(setq default-frame-alist
-      (append (list
-               '(vertical-scroll-bars . nil)
-               '(internal-border-width . 24)
-               '(left-fringe . 0)
-               '(right-fringe . 0)
-               '(tool-bar-lines . 0)
-               '(menu-bar-lines . 0))))
+(defun +yiglas/set-frame-dimensions ()
+  (interactive)
+  (when-let (dims (doom-store-get 'last-frame-size))
+    (cl-destructuring-bind ((left . top) width height) dims
+      (message "left %d top %d width %d height %d" left top width height)
+      (set-frame-position (selected-frame) left top)
+      (set-frame-size (selected-frame) width height))))
 
-(set-face-attribute 'default nil :font "JetBrains Mono")
+(add-hook! 'emacs-startup-hook #'+yiglas/set-frame-dimensions)
 
-;; save the screen size and location when closing eamcs
-(when-let (dims (doom-store-get 'last-frame-size))
-  (cl-destructuring-bind ((left . top) width height fullscreen) dims
-    (setq initial-frame-alist
-          (append initial-frame-alist
-                  `((left . ,left)
-                    (top . ,top)
-                    (width . ,width)
-                    (height . ,height)
-                    (fullscreen . ,fullscreen))))))
-
-(defun yiglas-save-frame-dimensions ()
+(defun +yiglas/save-frame-dimensions ()
+  (interactive)
   (doom-store-put 'last-frame-size
                   (list (frame-position)
                         (frame-width)
-                        (frame-height)
-                        (frame-parameter nil 'fullscreen))))
+                        (frame-height))))
 
-(add-hook 'kill-emacs-hook #'yiglas-save-frame-dimensions)
+(add-hook 'kill-emacs-hook #'+yiglas/set-frame-dimensions)
 
-;; apply rainbow-delimiters to all program modes
-(add-hook 'prog-mode-hook #'rainbow-delimiters-mode)
-(add-hook 'emacs-lisp-mode-hook 'rainbow-delimiters-mode)
-(add-hook 'eval-expression-minibuffer-setup-hook 'rainbow-delimiters-mode)
+(defun +yiglas/quit-p (&optional _) t)
 
-;; setup unique buffer names
-(require 'uniquify)
-(setq uniquify-buffer-name-style 'reverse
-      uniquify-separator "."
-      uniquify-after-kill-buffer-p t
-      uniquify-ignore-buffers-re "^\\*")
+(setq confirm-kill-emacs #'+yiglas/quit-p)
 
-;; default shell in term
-(setq-default shell-file-name "/bin/zsh")
-(setq explicit-shell-file-name "/bin/zsh")
+(after! org-mode
+  (require 'org-tempo)
+  (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
+  (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp")))
 
-;; set the indenting for JavaScript
-(setq js-indent-level 2)
-(setq js2-basic-offset 2)
-(setq typescript-indent-level 2)
+(after! lsp-mode
+  (setq lsp-lens-enable t)
+  (map! "<f12>" 'lsp-find-definition
+       "C-<f12>" 'lsp-find-implementation
+       "C--" 'pop-global-mark)
+  (dolist (dir
+           '("[/\\\\]tools\\'"
+             "[/\\\\].docz\\'"
+             "[/\\\\]TestOutput\\'"
+             "[/\\\\]Terraform\\'"
+             "[/\\\\]QA Automation\\'"
+             "[/\\\\]certs\\'"
+             "[/\\\\]LoadTests\\'"
+             "[/\\\\]Artifacts\\'"
+             "[/\\\\]Database\\'"
+             "[/\\\\].azuredevops\\'"
+             "[/\\\\].docker\\'"
+             "[/\\\\].log\\'"
+             "[/\\\\].vs\\'"
+             "[/\\\\]Dependencies\\'"))
+    (add-to-list 'lsp-file-watch-ignored-directories dir)))
 
-;; eshell-toggle allows me to open an Eshell window below the current buffer for the path (or project path) of the buffer.
+(after! lsp-ui
+  (setq lsp-ui-doc-position 'bottom)
+  (setq lsp-ui-sideline-show-code-actions nil))
+
 (use-package! eshell-toggle
   :bind ("C-M-'" . eshell-toggle)
   :custom
@@ -165,10 +170,11 @@
   (eshell-toggle-use-projectile-root t)
   (eshell-toggle-run-command nil))
 
-(use-package! dimmer
-  :config
-  (dimmer-configure-which-key)
-  (dimmer-mode t))
+;; make the titlebar completely transparent
+(add-to-list 'default-frame-alist '(ns-transparent-titlebar . t))
+(add-to-list 'default-frame-alist '(ns-appearance . dark))
+(setq ns-use-proxy-icon nil)
+(setq frame-title-format nil)
 
-(use-package! prettier-js
-  :hook ('typescript-mode-hook 'prettier-js-mode))
+(add-hook! 'prog-mode-hook 'format-all-mode)
+(add-hook! 'prog-mode-hook 'rainbow-delimiters-mode)

@@ -49,8 +49,13 @@
 ;; ...Or *all* packages (NOT RECOMMENDED; will likely break things)
 ;(unpin! t)
 
-
-(package! eshell-toggle)
-(package! powershell)
 (package! dimmer)
-(package! prettier-js)
+(package! eshell-toggle)
+
+
+;; try
+(package! coffee-mode :disable t)
+(package! js2-mode :disable t)
+(package! rjsx-mode :disable t)
+(package! js2-refactor :disable t)
+(package! tide :disable t)

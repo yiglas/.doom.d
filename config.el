@@ -80,6 +80,8 @@
 (map! "C-x k" 'kill-current-buffer)
 (map! "s-x" 'kill-region)
 
+(map! (:when (featurep! :ui treemacs) "C-x t" 'treemacs))
+
 (defun +yiglas/open-config ()
   (interactive)
   (find-file "~/.doom.d/config.el"))
@@ -87,7 +89,6 @@
 (map! "s-," '+yiglas/open-config)
 
 (after! treemacs
-  (map! "C-x t" 'treemacs)
   (treemacs-follow-mode t))
 
 (after! doom-modeline
@@ -128,9 +129,13 @@
 
 (add-hook 'kill-emacs-hook #'+yiglas/set-frame-dimensions)
 
-(defun +yiglas/quit-p (&optional _) t)
+(setq confirm-kill-emacs nil)
 
-(setq confirm-kill-emacs #'+yiglas/quit-p)
+;; delete the selection when pasting
+(delete-selection-mode 1)
+
+;; delete by moving to trash
+(setq delete-by-moving-to-trash t)
 
 (after! org-mode
   (require 'org-tempo)
@@ -140,8 +145,8 @@
 (after! lsp-mode
   (setq lsp-lens-enable t)
   (map! "<f12>" 'lsp-find-definition
-       "C-<f12>" 'lsp-find-implementation
-       "C--" 'pop-global-mark)
+        "C-<f12>" 'lsp-find-implementation
+        "C--" 'pop-global-mark)
   (dolist (dir
            '("[/\\\\]tools\\'"
              "[/\\\\].docz\\'"

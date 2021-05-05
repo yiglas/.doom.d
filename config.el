@@ -76,11 +76,16 @@
 (map! "C-c <up>" 'windmove-up)
 (map! "C-c <down>" 'windmove-down)
 
+;; TODO: add mapping for swapping windows windmove-swap-states-XXX
+
 (map! "M-<return>" 'toggle-frame-maximized)
 (map! "C-x k" 'kill-current-buffer)
 (map! "s-x" 'kill-region)
 
 (map! (:when (featurep! :ui treemacs) "C-x t" 'treemacs))
+
+(defadvice! prompt-for-buffer (&rest _)
+  :after 'window-split (switch-to-buffer))
 
 (defun +yiglas/open-config ()
   (interactive)

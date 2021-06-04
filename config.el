@@ -188,3 +188,7 @@
 
 (add-hook! 'prog-mode-hook 'format-all-mode)
 (add-hook! 'prog-mode-hook 'rainbow-delimiters-mode)
+
+(add-to-list 'auto-mode-alist '("\\.cake\\'" . csharp-mode))
+
+(add-hook! 'yaml-mode-hook (lambda () (electric-indent-mode -1)))
